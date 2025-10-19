@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS Conect - Sistema Unificado MVP</title>
+    <!-- Carregamento do Tailwind CSS para estilo rápido e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Estilos do Paciente */
+        .time-slot { transition: all 0.2s; cursor: pointer; }
+        .time-slot:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); }
+        .time-slot.selected { background-color: #21b910; color: white; border-color: #26b910; }
+        .hidden { display: none; }
+        
+        /* Estilos da Clínica */
+        .status-pill { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
+        .agenda-slot-busy { background-color: #e0f2f7; border-left: 4px solid #06b6d4; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8">
+
+    <!-- Container Principal (Apenas a tela de Login é visível no início) -->
+    <div id="main-container" class="w-full h-full">
+
+        <!-- BOTÃO DE VOLTAR PARA LOGIN (Visível apenas nos Portais) -->
+        <button id="logout-btn" onclick="logout()" class="absolute top-4 right-4 py-2 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-300 transition duration-200 hidden">
+            Sair / Voltar
+        </button>
+
+        <!-- ========================================================= -->
+        <!-- 1. TELAS DE AUTENTICAÇÃO (LOGIN & CADASTRO) -->
+        <!-- ========================================================= -->
+        <section id="auth-section" class="w-full max-w-md mx-auto">
+            <div id="login-screen" class="bg-white shadow-2xl rounded-xl p-8">
+                <header class="mb-6 text-center">
+                    <h1 class="text-3xl font-extrabold text-indigo-700">SOS Conect</h1>
+                    <p class="text-gray-500 mt-1">Acesso ao Sistema MVP</p>
+                </header>
+                
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Login</h2>
+                <form onsubmit="processLogin(event)">
+                    <div class="mb-4">
+                        <label for="login-user" class="block text-sm font-medium text-gray-700">Usuário para loguin
+                            
+                        </label>
+                        <input type="text" id="login-user" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg" value="">
+                    </div>
+                    <div class="mb-6">
+                        <label for="login-pass" class="block text-sm font-medium text-gray-700">Senha</label>
+                        <input type="password" id="login-pass" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg" value="">
+                    </div>
+                    <button type="submit" class="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-200">
+                        Entrar
+                    </button>
+                </form>
+                <button onclick="showAuthScreen('registration-screen')" class="mt-3 w-full py-2 text-indigo-600 font-medium hover:text-indigo-800 transition duration-200">
+                    Não tem conta? Cadastre-se
+                </button>
+            </div>
+
+            <div id="registration-screen" class="bg-white shadow-2xl rounded-xl p-8 hidden">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Cadastro de Paciente</h2>
+                <form onsubmit="processRegistration(event)">
+                    <div class="mb-4">
+                        <label for="reg-name" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                        <input type="text" id="reg-name" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="mb-4">
+                        <label for="reg-cpf" class="block text-sm font-medium text-gray-700">CPF</label>
+                        <input type="text" id="reg-cpf" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="mb-4">
+                        <label for="reg-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="reg-email" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div class="mb-6">
+                        <label for="reg-pass" class="block text-sm font-medium text-gray-700">Criar Senha</label>
+                        <input type="password" id="reg-pass" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <button type="submit" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200">
+                        Finalizar Cadastro
+                    </button>
+                </form>
+                <button onclick="showAuthScreen('login-screen')" class="mt-3 w-full py-2 text-indigo-600 font-medium hover:text-indigo-800 transition duration-200">
+                    Voltar para Login
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- 2. PORTAL DO PACIENTE (AGENDAMENTO) -->
+        <!-- Conteúdo do sos_conect_mvp_simples.html -->
+        <!-- ========================================================= -->
+        <section id="patient-portal" class="hidden w-full h-full flex items-center justify-center">
+             <div id="patient-portal-content" class="w-full max-w-lg bg-white shadow-2xl rounded-xl p-8 transition-all duration-300">
+                <!-- HEADER -->
+                <header class="mb-6 text-center">
+                    <h1 class="text-3xl font-extrabold text-indigo-700">SOS Conect - Paciente</h1>
+                    <p class="text-gray-500 mt-1">Agende sua Consulta Médica</p>
+                </header>
+
+                <!-- Container para as Etapas (Controlado por JS) -->
+                
+                <!-- ETAPA 1: SELEÇÃO DE ESPECIALIDADE (AGORA COM SELECT/LISTA) -->
+                <div id="patient-step-1" class="step">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">1. Escolha a Especialidade</h2>
+                    
+                    <div class="mb-6">
+                        <label for="specialty-select" class="block text-sm font-medium text-gray-700 mb-2">Selecione uma opção:</label>
+                        <!-- O SELECT/LISTA SUBSTITUIU OS BOTÕES -->
+                        <select id="specialty-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="" disabled selected>-- Selecione a Especialidade --</option>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Botão para avançar, habilitado após a seleção -->
+                    <button onclick="selectSpecialty()" id="next-to-step2-btn" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 disabled:opacity-50" disabled>
+                        Continuar
+                    </button>
+                </div>
+
+                <!-- ETAPA 2: SELEÇÃO DE HORÁRIO -->
+                <div id="patient-step-2" class="step hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">2. Escolha a Data e Horário</h2>
+                    <p class="text-sm text-gray-600 mb-4">Especialidade Selecionada: <span id="selected-specialty" class="font-bold text-indigo-700"></span></p>
+
+                    <!-- SIMULAÇÃO DE DIAS -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Selecione o dia:</label>
+                        <select id="date-select" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="Qua, 25/10">Quarta-feira, 25/10 (Dr. Silva)</option>
+                            <option value="Qui, 26/10">Quinta-feira, 26/10 (Dra. Souza)</option>
+                            <option value="Sex, 27/10">Sexta-feira, 27/10 (Dr. Oliveira)</option>
+                            <option value="Seg, 04/11">Segunda-feira, 04/11 (Dr. Nicolas)</option>
+                            <option value="Ter, 05/11">Terça-feira, 05/11 (Dra. Fernanda)</option>
+                            <option value="Qua, 06/11">Quarta-feira, 06/11 (Dr. Silva)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- HORÁRIOS DISPONÍVEIS (SIMULADOS) -->
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Horários disponíveis:</label>
+                    <div id="time-slots-container" class="grid grid-cols-3 gap-3">
+                        <!-- Horários serão injetados aqui, mas vamos colocar alguns fixos por simplicidade -->
+                        <div onclick="selectTime('09:00')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">09:00</div>
+                        <div onclick="selectTime('10:30')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">10:30</div>
+                        <div onclick="selectTime('14:00')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">14:00</div>
+                        <div onclick="selectTime('15:30')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">15:30</div>
+                        <div onclick="selectTime('16:00')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">16:00</div>
+                        <div onclick="selectTime('17:30')" class="time-slot p-3 text-center border border-gray-300 rounded-lg text-gray-700 font-medium bg-white">17:30</div>
+                    </div>
+
+                    <button onclick="goToStep(3)" id="next-to-form-btn" class="mt-6 w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 disabled:opacity-50" disabled>
+                        Continuar
+                    </button>
+                    <button onclick="goToStep(1)" class="mt-3 w-full py-2 text-indigo-600 font-medium hover:text-indigo-800 transition duration-200">
+                        Voltar
+                    </button>
+                </div>
+
+                <!-- ETAPA 3: DADOS DO PACIENTE -->
+                <div id="patient-step-3" class="step hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">3. Confirme seus Dados</h2>
+                    
+                    <div id="summary-card" class="bg-indigo-50 p-4 rounded-lg mb-6 border-l-4 border-indigo-500">
+                        <p class="font-bold text-indigo-800">Resumo da Consulta:</p>
+                        <p class="text-sm text-indigo-700">Especialidade: <span id="summary-specialty"></span></p>
+                        <p class="text-sm text-indigo-700">Data e Horário: <span id="summary-datetime"></span></p>
+                    </div>
+
+                    <form id="booking-form" onsubmit="submitBooking(event)">
+                        <div class="mb-4">
+                            <label for="patient-name" class="block text-sm font-medium text-gray-700">Nome Completo</label>
+                            <input type="text" id="patient-name" name="name" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <!-- CAMPO: CPF -->
+                        <div class="mb-4">
+                            <label for="patient-cpf" class="block text-sm font-medium text-gray-700">CPF (Cadastro de Pessoas Físicas)</label>
+                            <input type="text" id="patient-cpf" name="cpf" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg" placeholder="000.000.000-00">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="patient-phone" class="block text-sm font-medium text-gray-700">Telefone / WhatsApp</label>
+                            <input type="tel" id="patient-phone" name="phone" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        <div class="mb-6">
+                            <label for="patient-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="patient-email" name="email" required class="mt-1 block w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+
+                        <button type="submit" class="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-200">
+                            Confirmar Agendamento
+                        </button>
+                    </form>
+                    <button onclick="goToStep(2)" class="mt-3 w-full py-2 text-indigo-600 font-medium hover:text-indigo-800 transition duration-200">
+                        Voltar e Mudar Horário
+                    </button>
+                </div>
+
+                <!-- ETAPA 4: CONFIRMAÇÃO (FINAL) -->
+                <div id="patient-step-4" class="step hidden text-center">
+                    <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3">Agendamento Solicitado!</h2>
+                    <p class="text-gray-600 mb-6">
+                        Sua solicitação de agendamento foi enviada.
+                    </p>
+                    <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500 text-left mb-6">
+                        <p class="font-semibold text-green-800">Próximos Passos (Simulação):</p>
+                        <ul class="list-disc list-inside text-sm text-green-700 mt-2">
+                            <li>Um operador da clínica (<span id="final-specialty-summary"></span>) irá conferir e confirmar o horário.</li>
+                            <li>Você receberá a confirmação final por telefone (<span id="final-phone-summary"></span>) ou e-mail.</li>
+                            <li>Horário: <span id="final-datetime-summary" class="font-bold"></span></li>
+                        </ul>
+                    </div>
+                    <button onclick="goToStep(1); resetForm()" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200">
+                        Agendar Novo Horário
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- 3. PORTAL DA CLÍNICA (PAINEL ADMINISTRATIVO) -->
+        <!-- Conteúdo do clinic_panel_mvp_simples.html -->
+        <!-- ========================================================= -->
+        <section id="clinic-portal" class="hidden w-full h-full flex items-start justify-center">
+            <div id="clinic-portal-content" class="w-full max-w-4xl mx-auto bg-white shadow-2xl rounded-xl p-6 sm:p-10">
+                
+                <!-- HEADER CLÍNICA -->
+                <header class="mb-8 border-b pb-4">
+                    <h1 class="text-3xl font-extrabold text-green-700">SOS Connect - Painel da Clínica</h1>
+                    <p class="text-gray-500 mt-1">Visão Administrativa - SOS Connect (Gestão da Agenda)</p>
+                </header>
+
+                <!-- Seção de Gestão de Agenda (Simulação) -->
+                <section class="mb-8 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                    <h2 class="text-xl font-semibold text-yellow-800 mb-2">Simular Gestão de Agenda</h2>
+                    <p class="text-sm text-yellow-700 mb-4">Esta seção é onde a clínica indicaria a disponibilidade.</p>
+                    
+                    <!-- INPUTS (DATA E MOTIVO) -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-4"> 
+                        <input type="date" id="block-date" class="p-2 border border-gray-300 rounded-lg w-full sm:w-auto">
+                        <input type="text" id="block-reason" placeholder="Motivo (ex: Férias, Emergência)" class="p-2 border border-gray-300 rounded-lg w-full sm:flex-grow">
+                    </div>
+                    
+                    <!-- BOTÕES DE AÇÃO (BLOQUEAR E DESBLOQUEAR) -->
+                    <div class="flex flex-col sm:flex-row gap-4 sm:justify-end">
+                        <button onclick="blockTimeSlot()" class="py-2 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-150 w-full sm:w-auto">
+                            Bloquear Agenda
+                        </button>
+                        <button onclick="unblockTimeSlot()" class="py-2 px-4 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition duration-150 w-full sm:w-auto">
+                            Desbloquear Data
+                        </button>
+                    </div>
+                </section>
+
+                <!-- FILTER by SPECIALTY (SELEÇÃO DA AGENDA A SER VISTA) -->
+                <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+                    <label for="clinic-specialty-filter" class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Especialidade (Agenda):</label>
+                    <select id="clinic-specialty-filter" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm">
+                        <!-- Options will be injected by JavaScript -->
+                    </select>
+                </div>
+
+                <!-- Toggle de Visualização -->
+                <div class="flex space-x-2 mb-6">
+                    <button id="toggle-list" onclick="showClinicView('list')" class="py-2 px-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition duration-150">
+                        Lista de Agendamentos
+                    </button>
+                    <button id="toggle-agenda" onclick="showClinicView('agenda')" class="py-2 px-4 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition duration-150">
+                        Agenda Diária
+                    </button>
+                </div>
+
+                <!-- CONTAINER DA VISÃO DE LISTA -->
+                <section id="list-view" class="view-container mb-10">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Lista de Agendamentos</h2>
+                    
+                    <div id="appointments-list" class="space-y-4">
+                        <!-- Itens de Agendamento serão injetados aqui pelo JavaScript -->
+                    </div>
+
+                    <p id="no-appointments" class="text-gray-500 text-center p-8 hidden">Nenhum agendamento pendente no momento.</p>
+                </section>
+                
+                <!-- CONTAINER DA VISÃO DE AGENDA -->
+                <section id="agenda-view" class="view-container mb-10 hidden">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Agenda Diária: <span id="current-agenda-date-display">25/10/2025</span></h2>
+
+                    <!-- Seletor de Data -->
+                    <div class="mb-6">
+                        <label for="agenda-date-picker" class="block text-sm font-medium text-gray-700 mb-1">Escolher Dia da Agenda:</label>
+                        <input type="date" id="agenda-date-picker" class="p-2 border border-gray-300 rounded-lg shadow-sm" >
+                    </div>
+
+                    <div class="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hora</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-4/5">Agendamento / Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agenda-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Slots de Horário serão injetados aqui pelo JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // =========================================================
+        // VARIÁVEIS DE ESTADO GLOBAIS
+        // =========================================================
+        const PATIENT_SPECIALTIES = ['Cardiologia', 'Dermatologia', 'Pediatria', 'Clínica Geral', 'Ortopedia', 'Oftalmologia']; // Especialidades disponíveis
+        const CLINIC_SPECIALTIES = ['TODAS', ...PATIENT_SPECIALTIES]; // Para o filtro da clínica
+
+        // --- Variáveis do Paciente ---
+        const bookingState = { specialty: null, date: null, time: null };
+
+        // --- Variáveis da Clínica ---
+        let selectedAgendaDate = ''; 
+        let selectedClinicSpecialty = 'TODAS'; 
+        let blockedDates = []; 
+        const AVAILABLE_TIMES = ['09:00', '10:00', '10:30', '11:00', '14:00', '15:00', '15:30', '16:00', '17:00'];
+        let currentPatientStep = 1;
+
+        // DADOS SIMULADOS GLOBAIS (Compartilhados entre paciente e clínica)
+        let appointments = [
+            { id: 1, name: 'João Silva', phone: '(65) 98765-4321', specialty: 'Cardiologia', date: '25/10/2025', time: '10:30', status: 'PENDENTE' },
+            { id: 2, name: 'Maria Souza', phone: '(65) 99887-7665', specialty: 'Pediatria', date: '25/10/2025', time: '14:00', status: 'CONFIRMADO' },
+            { id: 3, name: 'Pedro Santos', phone: '(65) 91234-5678', specialty: 'Clínica Geral', date: '26/10/2025', time: '09:00', status: 'PENDENTE' },
+            { id: 4, name: 'Paulo Zanardi', phone: '(65) 94002-8922', specialty: 'Oftalmologia', date: '27/10/2025', time: '16:00', status: 'PENDENTE' }
+        ];
+
+        // =========================================================
+        // FUNÇÕES DE UTILIDADE E AUTENTICAÇÃO
+        // =========================================================
+
+        function showScreen(screenId) {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('patient-portal').classList.add('hidden');
+            document.getElementById('clinic-portal').classList.add('hidden');
+            document.getElementById('logout-btn').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+
+            if (screenId === 'patient-portal' || screenId === 'clinic-portal') {
+                document.getElementById('logout-btn').classList.remove('hidden');
+            }
+        }
+
+        function showAuthScreen(screenId) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('registration-screen').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function logout() {
+            showScreen('auth-section');
+            showAuthScreen('login-screen');
+            displayFeedback('Sessão encerrada com sucesso.', 'bg-gray-100 text-gray-700');
+        }
+
+        function processLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('login-user').value.toLowerCase();
+            const pass = document.getElementById('login-pass').value;
+
+            if (pass !== '12345678') {
+                displayFeedback('Senha incorreta.', 'bg-red-100 text-red-700');
+                return;
+            }
+
+            if (user === 'paciente') {
+                showScreen('patient-portal');
+                // Re-inicializa o portal do paciente
+                goToStep(1); 
+                displayFeedback('Bem-vindo(a) de volta! Comece seu agendamento.', 'bg-indigo-100 text-indigo-700');
+            } else if (user === 'clinica') {
+                showScreen('clinic-portal');
+                // Re-inicializa o painel da clínica
+                initializeClinicPanel();
+                displayFeedback('Painel da Clínica Carregado. Pronto para gerenciar.', 'bg-green-100 text-green-700');
+            } else {
+                displayFeedback('Usuário não reconhecido. Tente "paciente" ou "clinica".', 'bg-yellow-100 text-yellow-700');
+            }
+        }
+
+        function processRegistration(event) {
+            event.preventDefault();
+            const name = document.getElementById('reg-name').value;
+            // Simulamos o cadastro, apenas limpando o form e voltando ao login
+            document.getElementById('registration-screen').querySelector('form').reset();
+            showAuthScreen('login-screen');
+            displayFeedback(`Cadastro de ${name} realizado com sucesso! Use "paciente" para entrar.`, 'bg-green-100 text-green-700');
+        }
+        
+        // --- FUNÇÃO DE FEEDBACK VISUAL (Compartilhada) ---
+        function displayFeedback(message, classes = 'bg-green-100 text-green-700') {
+            const feedbackContainer = document.createElement('div');
+            feedbackContainer.innerHTML = message;
+            feedbackContainer.className = `fixed top-5 left-1/2 transform -translate-x-1/2 p-3 rounded-lg shadow-xl z-50 transition-all duration-300 ${classes}`;
+            
+            document.body.appendChild(feedbackContainer);
+            setTimeout(() => { feedbackContainer.remove(); }, 3000);
+        }
+
+
+        // =========================================================
+        // FUNÇÕES DO PORTAL DO PACIENTE
+        // =========================================================
+        
+        function goToStep(step) {
+            currentPatientStep = step;
+            document.querySelectorAll('#patient-portal-content .step').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(`patient-step-${step}`).classList.remove('hidden');
+
+            if (step === 3) {
+                document.getElementById('summary-specialty').textContent = bookingState.specialty;
+                document.getElementById('summary-datetime').textContent = `${document.getElementById('date-select').value} às ${bookingState.time}`;
+            }
+        }
+
+        function populateSpecialties() {
+            const select = document.getElementById('specialty-select');
+            const nextButton = document.getElementById('next-to-step2-btn');
+
+            PATIENT_SPECIALTIES.forEach(specialty => {
+                const option = document.createElement('option');
+                option.value = specialty;
+                option.textContent = specialty;
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', () => {
+                nextButton.disabled = select.value === "";
+            });
+        }
+        
+        function selectSpecialty() {
+            const specialty = document.getElementById('specialty-select').value;
+            if (!specialty) return;
+
+            bookingState.specialty = specialty;
+            document.getElementById('selected-specialty').textContent = specialty;
+            goToStep(2);
+        }
+
+        function selectTime(time) {
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+
+            const selectedElement = document.querySelector(`.time-slot[onclick="selectTime('${time}')"]`);
+            selectedElement.classList.add('selected');
+
+            bookingState.time = time;
+            
+            document.getElementById('next-to-form-btn').disabled = false;
+        }
+
+        function submitBooking(event) {
+            event.preventDefault(); 
+            
+            const name = document.getElementById('patient-name').value;
+            const cpf = document.getElementById('patient-cpf').value; 
+            const phone = document.getElementById('patient-phone').value;
+            const email = document.getElementById('patient-email').value;
+            const dateStr = document.getElementById('date-select').value;
+
+            // Simula a adição ao array de agendamentos global para que a clínica veja (MVP)
+            const newAppointmentId = appointments.length + 1;
+            const newDateDisplay = dateStr.split(', ')[1]; // Ex: 25/10
+            
+            // Adiciona o novo agendamento à lista global
+            appointments.push({
+                id: newAppointmentId, 
+                name: name, 
+                phone: phone, 
+                specialty: bookingState.specialty, 
+                date: newDateDisplay, // Formato DD/MM/YYYY simulado para a clínica
+                time: bookingState.time, 
+                status: 'PENDENTE' 
+            });
+
+            console.log('--- Novo Agendamento (MVP Skate) Adicionado à Simulação Global ---');
+            console.log(`Especialidade: ${bookingState.specialty}, Data e Hora: ${dateStr} às ${bookingState.time}, Nome: ${name}, CPF: ${cpf}`);
+
+            // Atualiza o resumo da confirmação
+            document.getElementById('final-specialty-summary').textContent = bookingState.specialty;
+            document.getElementById('final-phone-summary').textContent = phone;
+            document.getElementById('final-datetime-summary').textContent = `${dateStr} às ${bookingState.time}`;
+
+            goToStep(4); 
+        }
+        
+        function resetForm() {
+            bookingState.specialty = null;
+            bookingState.date = null;
+            bookingState.time = null;
+
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            document.getElementById('next-to-form-btn').disabled = true;
+            document.getElementById('specialty-select').value = ""; 
+            document.getElementById('next-to-step2-btn').disabled = true;
+            
+            document.getElementById('booking-form').reset();
+        }
+
+
+        // =========================================================
+        // FUNÇÕES DO PORTAL DA CLÍNICA
+        // =========================================================
+        
+        // --- UTILS CLÍNICA ---
+        function formatDateToDisplay(dateStr) {
+            if (!dateStr) return 'Data Não Selecionada';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function formatDateToInput(dateStr) {
+            if (!dateStr) return '';
+            const [day, month, year] = dateStr.split('/');
+            return `${year}-${month}-${day}`;
+        }
+
+        function isDayBlocked(displayDate) {
+            return blockedDates.find(block => block.date === displayDate);
+        }
+
+        function getStatusProps(status) {
+            switch (status) {
+                case 'CONFIRMADO':
+                    return { text: 'Confirmado', color: 'bg-green-100 text-green-700 border border-green-300' };
+                case 'CANCELADO':
+                    return { text: 'Cancelado', color: 'bg-red-100 text-red-700 border border-red-300' };
+                case 'PENDENTE':
+                default:
+                    return { text: 'Pendente', color: 'bg-yellow-100 text-yellow-700 border border-yellow-300' };
+            }
+        }
+        
+        function initializeClinicPanel() {
+            const specialtyFilter = document.getElementById('clinic-specialty-filter');
+            specialtyFilter.innerHTML = ''; // Limpa antes de popular
+
+            CLINIC_SPECIALTIES.forEach(spec => {
+                const option = document.createElement('option');
+                option.value = spec;
+                option.textContent = spec === 'TODAS' ? 'Todas as Especialidades' : spec;
+                specialtyFilter.appendChild(option);
+            });
+
+            specialtyFilter.addEventListener('change', (event) => {
+                selectedClinicSpecialty = event.target.value;
+                const currentView = document.getElementById('list-view').classList.contains('hidden') ? 'agenda' : 'list';
+                showClinicView(currentView);
+                displayFeedback(`Filtro aplicado: ${selectedClinicSpecialty === 'TODAS' ? 'Todas' : selectedClinicSpecialty}`, 'bg-blue-100 text-blue-700');
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+            const initialDateDisplay = formatDateToDisplay(today);
+            selectedAgendaDate = today;
+            document.getElementById('agenda-date-picker').value = selectedAgendaDate; 
+            document.getElementById('current-agenda-date-display').textContent = initialDateDisplay;
+
+            document.getElementById('agenda-date-picker').addEventListener('change', (event) => {
+                selectedAgendaDate = event.target.value;
+                renderAgendaView();
+            });
+
+            showClinicView('list');
+        }
+
+        function showClinicView(viewName) {
+            const listContainer = document.getElementById('list-view');
+            const agendaContainer = document.getElementById('agenda-view');
+            const toggleListBtn = document.getElementById('toggle-list');
+            const toggleAgendaBtn = document.getElementById('toggle-agenda');
+
+            listContainer.classList.add('hidden');
+            agendaContainer.classList.add('hidden');
+            toggleListBtn.classList.remove('bg-green-600', 'text-white', 'bg-gray-300', 'text-gray-800');
+            toggleAgendaBtn.classList.remove('bg-green-600', 'text-white', 'bg-gray-300', 'text-gray-800');
+
+            if (viewName === 'list') {
+                listContainer.classList.remove('hidden');
+                toggleListBtn.classList.add('bg-green-600', 'text-white');
+                toggleAgendaBtn.classList.add('bg-gray-300', 'text-gray-800');
+                renderAppointments(); 
+            } else if (viewName === 'agenda') {
+                agendaContainer.classList.remove('hidden');
+                toggleAgendaBtn.classList.add('bg-green-600', 'text-white');
+                toggleListBtn.classList.add('bg-gray-300', 'text-gray-800');
+                selectedAgendaDate = document.getElementById('agenda-date-picker').value;
+                renderAgendaView();
+            }
+        }
+
+        function renderAppointments() {
+            const appointmentsList = document.getElementById('appointments-list');
+            const noAppointmentsMessage = document.getElementById('no-appointments');
+            appointmentsList.innerHTML = ''; 
+
+            const filteredBySpecialty = selectedClinicSpecialty === 'TODAS'
+                ? appointments
+                : appointments.filter(app => app.specialty === selectedClinicSpecialty);
+
+            const pendingAppointments = filteredBySpecialty.filter(app => app.status !== 'CANCELADO');
+
+            if (pendingAppointments.length === 0) {
+                noAppointmentsMessage.classList.remove('hidden');
+                return;
+            }
+            noAppointmentsMessage.classList.add('hidden');
+
+            pendingAppointments.forEach(app => {
+                const status = getStatusProps(app.status);
+                const isDayBlockedGlobally = isDayBlocked(app.date); 
+
+                const html = `
+                    <div class="appointment-item p-4 border border-gray-200 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white hover:shadow-md transition duration-150 ${isDayBlockedGlobally ? 'border-red-500 border-2' : ''}">
+                        <div class="mb-3 sm:mb-0 sm:w-2/3">
+                            <p class="text-lg font-bold text-gray-800">${app.name}</p>
+                            <p class="text-sm text-gray-600">${app.specialty} | ${app.date} às <span class="font-bold">${app.time}</span></p>
+                            <p class="text-xs text-indigo-600 mt-1">Contato: ${app.phone}</p>
+                            ${isDayBlockedGlobally ? `<p class="text-xs font-semibold text-red-600 mt-1">Atenção: Dia Bloqueado (${isDayBlockedGlobally.reason})</p>` : ''}
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            <span class="status-pill ${status.color}">${status.text}</span>
+                            ${isDayBlockedGlobally ? 
+                                `<span class="text-xs text-red-500 font-medium">Ação Impedida</span>` : 
+                                (app.status === 'PENDENTE' ? `
+                                <button onclick="updateStatus(${app.id}, 'CONFIRMADO')" 
+                                    class="py-1 px-3 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition duration-150">
+                                    Confirmar
+                                </button>
+                                <button onclick="updateStatus(${app.id}, 'CANCELADO')" 
+                                    class="py-1 px-3 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 transition duration-150">
+                                    Cancelar
+                                </button>
+                            ` : '')}
+                        </div>
+                    </div>
+                `;
+                appointmentsList.innerHTML += html;
+            });
+        }
+
+        function renderAgendaView() {
+            const agendaBody = document.getElementById('agenda-body');
+            agendaBody.innerHTML = '';
+            
+            const displayDate = formatDateToDisplay(selectedAgendaDate); 
+            document.getElementById('current-agenda-date-display').textContent = displayDate;
+
+            if (!selectedAgendaDate) {
+                agendaBody.innerHTML = `<tr><td colspan="2" class="p-4 text-center text-gray-500">Selecione uma data para visualizar a agenda.</td></tr>`;
+                return;
+            }
+            
+            const block = isDayBlocked(displayDate);
+            if (block) {
+                agendaBody.innerHTML = `
+                    <tr class="bg-red-50">
+                        <td colspan="2" class="p-8 text-center text-lg font-semibold text-red-700 rounded-lg">
+                            <svg class="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                            <div class="mt-3">AGENDA BLOQUEADA PARA ESTE DIA</div>
+                            <p class="text-base font-normal text-red-600 mt-2">Motivo: ${block.reason}</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            const dailyAppointments = appointments
+                .filter(app => app.date === displayDate && app.status !== 'CANCELADO')
+                .filter(app => selectedClinicSpecialty === 'TODAS' || app.specialty === selectedClinicSpecialty) 
+                .reduce((acc, app) => {
+                    acc[app.time] = app;
+                    return acc;
+                }, {});
+            
+            let agendaHtml = '';
+            AVAILABLE_TIMES.forEach(time => {
+                const appointment = dailyAppointments[time];
+                let content;
+                let className = 'text-gray-500';
+                
+                if (appointment) {
+                    const status = getStatusProps(appointment.status);
+                    content = `
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-gray-900">${appointment.name}</span>
+                            <span class="text-xs text-gray-600">${appointment.specialty} | ${appointment.phone}</span>
+                            <span class="status-pill mt-1 ${status.color}">${status.text}</span>
+                        </div>
+                    `;
+                    className = 'agenda-slot-busy';
+                } else {
+                    content = `<span class="italic text-gray-400">Livre</span>`;
+                }
+
+                agendaHtml += `
+                    <tr class="hover:bg-gray-50 transition duration-100 ${className}">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 border-r">${time}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${content}</td>
+                    </tr>
+                `;
+            });
+            agendaBody.innerHTML = agendaHtml;
+        }
+
+        function updateStatus(id, newStatus) {
+            const index = appointments.findIndex(app => app.id === id);
+            if (index !== -1) {
+                appointments[index].status = newStatus;
+                
+                if (!document.getElementById('list-view').classList.contains('hidden')) { renderAppointments(); }
+                if (!document.getElementById('agenda-view').classList.contains('hidden')) { renderAgendaView(); }
+
+                displayFeedback(`Agendamento de ${appointments[index].name} foi ${newStatus.toLowerCase()}!`);
+            }
+        }
+
+        function blockTimeSlot() {
+            const date = document.getElementById('block-date').value; 
+            const reason = document.getElementById('block-reason').value;
+
+            if (!date || !reason) {
+                displayFeedback("Por favor, preencha a data e o motivo para o bloqueio.", 'bg-red-100 text-red-700');
+                return;
+            }
+
+            const displayDate = formatDateToDisplay(date); 
+
+            if (isDayBlocked(displayDate)) {
+                displayFeedback(`O dia ${displayDate} já está bloqueado.`, 'bg-red-100 text-red-700');
+                return;
+            }
+            
+            blockedDates.push({ date: displayDate, reason: reason });
+            displayFeedback(`Data ${displayDate} bloqueada com sucesso pelo motivo: ${reason}`, 'bg-indigo-100 text-indigo-700');
+            
+            if (!document.getElementById('agenda-view').classList.contains('hidden')) { renderAgendaView(); }
+            if (!document.getElementById('list-view').classList.contains('hidden')) { renderAppointments(); }
+
+            document.getElementById('block-date').value = '';
+            document.getElementById('block-reason').value = '';
+        }
+
+        function unblockTimeSlot() {
+            const date = document.getElementById('block-date').value; 
+
+            if (!date) {
+                displayFeedback("Por favor, selecione uma data para desbloquear.", 'bg-red-100 text-red-700');
+                return;
+            }
+
+            const displayDate = formatDateToDisplay(date); 
+            const initialLength = blockedDates.length;
+
+            blockedDates = blockedDates.filter(block => block.date !== displayDate);
+            
+            if (blockedDates.length < initialLength) {
+                displayFeedback(`Data ${displayDate} desbloqueada com sucesso!`, 'bg-green-100 text-green-700');
+                
+                if (!document.getElementById('agenda-view').classList.contains('hidden')) { renderAgendaView(); }
+                if (!document.getElementById('list-view').classList.contains('hidden')) { renderAppointments(); }
+            } else {
+                displayFeedback(`O dia ${displayDate} não estava bloqueado.`, 'bg-yellow-100 text-yellow-700');
+            }
+            
+            document.getElementById('block-date').value = '';
+            document.getElementById('block-reason').value = '';
+        }
+
+
+        // =========================================================
+        // INICIALIZAÇÃO
+        // =========================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            populateSpecialties(); // Inicializa o seletor de especialidades do paciente
+            
+            // Define a data inicial de demonstração para a clínica (se a clínica fosse a primeira a ser carregada)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('agenda-date-picker').value = today;
+
+            // Começa na tela de Login
+            showScreen('auth-section');
+            showAuthScreen('login-screen');
+        });
+    </script>
+</body>
+</html>
